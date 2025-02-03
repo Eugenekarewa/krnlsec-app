@@ -1,0 +1,25 @@
+{
+  "canisters": {
+    "krnlsec_backend": {
+      "main": "src/krnlsec_backend/main.mo",
+      "type": "motoko"
+    },
+    "krnlsec_frontend": {
+      "dependencies": [
+        "krnlsec_backend"
+      ],
+      "source": [
+        "src/krnlsec_frontend/assets"
+      ],
+      "type": "assets"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}
