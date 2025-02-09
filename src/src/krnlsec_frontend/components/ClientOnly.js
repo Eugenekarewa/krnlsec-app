@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import React, { useEffect, useState } from "react"
 
 export default function ClientOnly({ children, ...delegated }) {
   const [hasMounted, setHasMounted] = useState(false)
@@ -13,6 +13,6 @@ export default function ClientOnly({ children, ...delegated }) {
     return null
   }
 
-  return <div {...delegated}>{children}</div>
+  return <React.Fragment {...delegated}>{children}</React.Fragment>
 }
 

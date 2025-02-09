@@ -1,5 +1,5 @@
 import { Features } from "../components/Features"
-import { ClientComponents } from "../components/clientComponents"
+import { ClientComponents } from "../components/ClientComponents"
 
 export default function Home() {
   return (
@@ -9,5 +9,4 @@ export default function Home() {
     </main>
   )
 }
-
 
