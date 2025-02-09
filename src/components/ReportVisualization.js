@@ -1,27 +1,31 @@
 "use client"
 
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Button } from "./ui/button"
+import { Input } from "./ui/input"
+import { getAuditReport } from "../utils/canisterInteractions"
 
 export default function ReportVisualization() {
   const [contractId, setContractId] = useState("")
   const [report, setReport] = useState(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState(null)
 
   const fetchReport = async () => {
-    // Here you would integrate with your canister's getAuditReport function
-    // For now, we'll use mock data
-    const mockReport = {
-      contractId: contractId,
-      issues: [
-        { severity: "High", description: "Potential reentrancy vulnerability detected." },
-        { severity: "Medium", description: "Possible unauthorized access issue." },
-      ],
-      stats: "Lines of code: 100\nTotal characters: 5000",
-      testsPerformed: ["Security best practices check"],
-      functionsTested: ["transfer", "withdraw"],
+    setIsLoading(true)
+    setError(null)
+    try {
+      const result = await getAuditReport(contractId)
+      if (result.length > 0) {
+        setReport(result[0])
+      } else {
+        setError("No report found for this contract ID")
+      }
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setIsLoading(false)
     }
-    setReport(mockReport)
   }
 
   return (
@@ -37,8 +41,11 @@ export default function ReportVisualization() {
               onChange={(e) => setContractId(e.target.value)}
               className="flex-grow mr-2"
             />
-            <Button onClick={fetchReport}>Fetch Report</Button>
+            <Button onClick={fetchReport} disabled={isLoading}>
+              {isLoading ? "Fetching..." : "Fetch Report"}
+            </Button>
           </div>
+          {error && <div className="bg-red-500 text-white p-4 rounded mb-4">{error}</div>}
           {report && (
             <div className="bg-gray-700 p-6 rounded-lg">
               <h3 className="text-xl font-semibold mb-4">Report for Contract: {report.contractId}</h3>

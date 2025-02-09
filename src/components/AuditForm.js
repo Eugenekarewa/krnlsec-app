@@ -1,18 +1,31 @@
 "use client"
 
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
+import { Button } from "./ui/button"
+import { Input } from "./ui/input"
+import { Textarea } from "./ui/textarea"
+import { submitContract } from "../utils/canisterInteractions"
 
 export default function AuditForm() {
   const [contractId, setContractId] = useState("")
   const [contractCode, setContractCode] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [result, setResult] = useState(null)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    // Here you would integrate with your canister's submitContract function
-    console.log("Submitting contract:", { contractId, contractCode })
+    setIsSubmitting(true)
+    setResult(null)
+
+    try {
+      const response = await submitContract(contractId, contractCode)
+      setResult(response)
+    } catch (error) {
+      setResult({ err: error.message })
+    } finally {
+      setIsSubmitting(false)
+    }
+
     // Reset form after submission
     setContractId("")
     setContractCode("")
@@ -40,10 +53,16 @@ export default function AuditForm() {
               className="w-full h-64"
             />
           </div>
-          <Button type="submit" className="w-full">
-            Submit for Audit
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
+            {isSubmitting ? "Submitting..." : "Submit for Audit"}
           </Button>
         </form>
+        {result && (
+          <div className="mt-4 p-4 bg-gray-800 rounded">
+            <h3 className="text-xl font-semibold mb-2">Submission Result:</h3>
+            <pre className="whitespace-pre-wrap">{JSON.stringify(result, null, 2)}</pre>
+          </div>
+        )}
       </div>
     </section>
   )

@@ -1,25 +1,21 @@
 "use client"
 
 import dynamic from "next/dynamic"
-import { useClientSideRendering } from "@/hooks/useClientSideRendering"
+import ClientOnly from "./ClientOnly"
 
 const Hero = dynamic(() => import("./Hero"), { ssr: false })
-const AuditForm = dynamic(() => import("@/components/AuditForm"), { ssr: false })
-const ReportVisualization = dynamic(() => import("@/components/ReportVisualization"), { ssr: false })
+const AuditForm = dynamic(() => import("./AuditForm"), { ssr: false })
+const ReportVisualization = dynamic(() => import("./ReportVisualization"), { ssr: false })
+const AllReports = dynamic(() => import("./AllReports"), { ssr: false })
 
 export function ClientComponents() {
-  const isClient = useClientSideRendering()
-
-  if (!isClient) {
-    return null
-  }
-
   return (
-    <>
+    <ClientOnly>
       <Hero />
       <AuditForm />
       <ReportVisualization />
-    </>
+      <AllReports />
+    </ClientOnly>
   )
 }
 
