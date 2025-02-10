@@ -1,7 +1,7 @@
 "use client"
 
 import dynamic from "next/dynamic"
-import { useClientSideRendering } from "@/hooks/useClientSideRendering"
+import { useClientSideRendering } from "../hooks/useClientSideRendering"
 
 const ThreeScene = dynamic(() => import("./ThreeScene"), {
   ssr: false,

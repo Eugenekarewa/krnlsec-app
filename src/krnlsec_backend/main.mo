@@ -10,6 +10,11 @@ import Result "mo:base/Result";
 import Array "mo:base/Array";
 import Option "mo:base/Option";
 
+import KrnlSecAI "canister:krnlsec_ai";
+import KrnlSecStorage "canister:krnlsec_storage";
+import KrnlSecUsers "canister:krnlsec_users";
+import Principal "mo:base/Principal";
+
 actor KrnlSec {
 
     private type Severity = {
@@ -34,78 +39,73 @@ actor KrnlSec {
 
     private var reports = HashMap.HashMap<Text, Report>(10, Text.equal, Text.hash);
 
+    private func convertSeverity(severityText : Text) : Severity {
+        if (Text.equal(severityText, "High")) {
+            return #High;
+        } else if (Text.equal(severityText, "Medium")) {
+            return #Medium;
+        } else if (Text.equal(severityText, "Low")) {
+            return #Low;
+        } else if (Text.equal(severityText, "Info")) {
+            return #Info;
+        } else {
+            return #Info; // Default case
+        };
+    };
+
+    // Function to serialize a Report into Text
+    private func reportToText(report : Report) : Text {
+        "Contract ID: " # report.contractId # "\n" #
+        "Issues: " # debug_show(report.issues) # "\n" #
+        "Stats: " # report.stats # "\n" #
+        "Tests Performed: " # debug_show(report.testsPerformed) # "\n" #
+        "Functions Tested: " # debug_show(report.functionsTested)
+    };
+
     // Function to submit a contract for audit
-    public shared func submitContract(contractId : Text, contractCode : Text) : async Result.Result<Text, Text> {
+    public shared ({ caller }) func submitContract(contractId : Text, contractCode : Text) : async Result.Result<Text, Text> {
         if (Option.isSome(reports.get(contractId))) {
             return #err("Contract already audited. Retrieve report using getAuditReport.");
         };
 
-        let (auditIssues, functionsTested) = performAudit(contractCode);
-        let codeStatistics = generateCodeStats(contractCode);
+        // 🔐 Ensure the caller is an "Auditor"
+        let roleOption = await KrnlSecUsers.getUserRole(caller);
+        switch (roleOption) {
+            case (?role) {
+                if (role != "Auditor") {
+                    return #err("Access denied. Only Auditors can submit audits.");
+                };
+            };
+            case null {
+                return #err("User not registered. Contact an administrator.");
+            };
+        };
+
+        let analysisResult = await KrnlSecAI.analyzeContract(contractCode);
+
+        let issues = Array.map(analysisResult, func (warning : KrnlSecAI.Warning) : AuditIssue {
+            return { severity = convertSeverity(warning.severity); description = warning.message };
+        });
 
         let newReport : Report = {
             contractId = contractId;
-            issues = auditIssues;
-            stats = codeStatistics;
-            testsPerformed = ["Security best practices check"];
-            functionsTested = functionsTested;
+            issues = issues;
+            stats = generateCodeStats(contractCode);
+            testsPerformed = ["AI-powered security audit"];
+            functionsTested = []; // Populate this field or remove it from the Report type
         };
 
+        // Serialize the report to Text and store it
+        let reportText = reportToText(newReport);
+        await KrnlSecStorage.storeReport(contractId, reportText);
         reports.put(contractId, newReport);
-        #ok("Audit completed. Use getAuditReport to view results.")
-    };
-
-    // Function to perform the actual audit
-    private func performAudit(code : Text) : ([AuditIssue], [Text]) {
-        var issues : [AuditIssue] = [];
-        var functionsTested : [Text] = [];
-
-        // Define audit rules
-        let rules = [
-            ("transfer", #High, "Potential reentrancy vulnerability detected."),
-            ("caller", #Medium, "Possible unauthorized access issue."),
-            ("unchecked", #High, "Unchecked math operation detected."),
-            ("assert", #Low, "Assert statements found."),
-            ("public shared", #Medium, "Public shared functions found.")
-        ];
-
-        // Check for issues based on rules
-        for ((pattern, severity, description) in rules.vals()) {
-            if (Text.contains(code, #text pattern)) {
-                issues := Array.append(issues, [{
-                    severity = severity;
-                    description = description;
-                }]);
-            };
-        };
-
-        // Extract function names
-        let lines = Text.split(code, #text "\n");
-        for (line in Iter.toArray(lines).vals()) {
-            if (Text.contains(line, #text "func")) {
-                let funcName = extractFunctionName(line);
-                functionsTested := Array.append(functionsTested, [funcName]);
-            };
-        };
-
-        (issues, functionsTested)
-    };
-
-    // Helper function to extract function name
-    private func extractFunctionName(line : Text) : Text {
-        let trimmedLine = Text.trim(line, #char ' ');
-        if (Text.contains(trimmedLine, #text "func ")) {
-            let parts = Text.split(trimmedLine, #text "func ");
-            let funcParts = Text.split(Iter.toArray(parts)[1], #char '(');
-            return Text.trim(Iter.toArray(funcParts)[0], #char ' ');
-        };
-        ""
+        return #ok("Audit completed and stored in KrnlSecStorage.");
     };
 
     // Function to generate code statistics
     private func generateCodeStats(code : Text) : Text {
-        let lines = Text.split(code, #text "\n");
-        let lineCount = Iter.size(lines);
+        let lines = Iter.toArray(Text.split(code, #text "\n"));
+        let lineCount = lines.size();
         let charCount = Text.size(code);
 
         "Code Statistics:\n" #

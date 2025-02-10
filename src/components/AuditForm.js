@@ -4,20 +4,27 @@ import { useState } from "react"
 import { Button } from "./ui/button"
 import { Input } from "./ui/input"
 import { Textarea } from "./ui/textarea"
-import { submitContract } from "../utils/canisterInteractions"
+import { submitContract, analyzeContract } from "../utils/canisterInteractions"
 
 export default function AuditForm() {
   const [contractId, setContractId] = useState("")
   const [contractCode, setContractCode] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [result, setResult] = useState(null)
+  const [analysis, setAnalysis] = useState(null)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsSubmitting(true)
     setResult(null)
+    setAnalysis(null)
 
     try {
+      // First, analyze the contract
+      const analysisResult = await analyzeContract(contractCode)
+      setAnalysis(analysisResult)
+
+      // Then, submit the contract for audit
       const response = await submitContract(contractId, contractCode)
       setResult(response)
     } catch (error) {
@@ -57,6 +64,18 @@ export default function AuditForm() {
             {isSubmitting ? "Submitting..." : "Submit for Audit"}
           </Button>
         </form>
+        {analysis && (
+          <div className="mt-4 p-4 bg-gray-800 rounded">
+            <h3 className="text-xl font-semibold mb-2">AI Analysis:</h3>
+            <ul className="list-disc list-inside">
+              {analysis.map((warning, index) => (
+                <li key={index} className={`text-${warning.severity.toLowerCase()}-500`}>
+                  {warning.message}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         {result && (
           <div className="mt-4 p-4 bg-gray-800 rounded">
             <h3 className="text-xl font-semibold mb-2">Submission Result:</h3>

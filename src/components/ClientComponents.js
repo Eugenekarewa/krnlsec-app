@@ -7,6 +7,7 @@ const Hero = dynamic(() => import("./Hero"), { ssr: false })
 const AuditForm = dynamic(() => import("./AuditForm"), { ssr: false })
 const ReportVisualization = dynamic(() => import("./ReportVisualization"), { ssr: false })
 const AllReports = dynamic(() => import("./AllReports"), { ssr: false })
+const UserRegistration = dynamic(() => import("./UserRegistration"), { ssr: false })
 
 export function ClientComponents() {
   return (
@@ -15,6 +16,7 @@ export function ClientComponents() {
       <AuditForm />
       <ReportVisualization />
       <AllReports />
+      <UserRegistration />
     </ClientOnly>
   )
 }

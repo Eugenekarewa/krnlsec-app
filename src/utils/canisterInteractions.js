@@ -1,11 +1,28 @@
 import { Actor, HttpAgent } from "@dfinity/agent"
-import { idlFactory } from "../declarations/krnlsec_backend/krnlsec_backend.did.js"
+import { idlFactory as krnlSecIdlFactory } from "../declarations/krnlsec_backend/krnlsec_backend.did.js"
+import { idlFactory as krnlSecAIIdlFactory } from "../declarations/krnlsec_ai/krnlsec_ai.did.js"
+import { idlFactory as krnlSecStorageIdlFactory } from "../declarations/krnlsec_storage/krnlsec_storage.did.js"
+import { idlFactory as krnlSecUsersIdlFactory } from "../declarations/krnlsec_users/krnlsec_users.did.js"
 
-const canisterId = process.env.NEXT_PUBLIC_CANISTER_ID
 const host = process.env.NEXT_PUBLIC_IC_HOST || "https://ic0.app"
-
 const agent = new HttpAgent({ host })
-const krnlSecActor = Actor.createActor(idlFactory, { agent, canisterId })
+
+const krnlSecActor = Actor.createActor(krnlSecIdlFactory, {
+  agent,
+  canisterId: process.env.NEXT_PUBLIC_KRNLSEC_CANISTER_ID,
+})
+const krnlSecAIActor = Actor.createActor(krnlSecAIIdlFactory, {
+  agent,
+  canisterId: process.env.NEXT_PUBLIC_KRNLSEC_AI_CANISTER_ID,
+})
+const krnlSecStorageActor = Actor.createActor(krnlSecStorageIdlFactory, {
+  agent,
+  canisterId: process.env.NEXT_PUBLIC_KRNLSEC_STORAGE_CANISTER_ID,
+})
+const krnlSecUsersActor = Actor.createActor(krnlSecUsersIdlFactory, {
+  agent,
+  canisterId: process.env.NEXT_PUBLIC_KRNLSEC_USERS_CANISTER_ID,
+})
 
 export async function submitContract(contractId, contractCode) {
   try {
@@ -53,6 +70,54 @@ export async function clearReports() {
     return result
   } catch (error) {
     console.error("Error clearing reports:", error)
+    throw error
+  }
+}
+
+export async function analyzeContract(code) {
+  try {
+    const result = await krnlSecAIActor.analyzeContract(code)
+    return result
+  } catch (error) {
+    console.error("Error analyzing contract:", error)
+    throw error
+  }
+}
+
+export async function storeReport(contractId, report) {
+  try {
+    await krnlSecStorageActor.storeReport(contractId, report)
+  } catch (error) {
+    console.error("Error storing report:", error)
+    throw error
+  }
+}
+
+export async function getStoredReport(contractId) {
+  try {
+    const result = await krnlSecStorageActor.getReport(contractId)
+    return result
+  } catch (error) {
+    console.error("Error getting stored report:", error)
+    throw error
+  }
+}
+
+export async function registerUser(principal, role) {
+  try {
+    await krnlSecUsersActor.registerUser(principal, role)
+  } catch (error) {
+    console.error("Error registering user:", error)
+    throw error
+  }
+}
+
+export async function getUserRole(principal) {
+  try {
+    const result = await krnlSecUsersActor.getUserRole(principal)
+    return result
+  } catch (error) {
+    console.error("Error getting user role:", error)
     throw error
   }
 }

@@ -1,34 +1,19 @@
 "use client"
 
+import { Suspense } from "react"
 import { Canvas } from "@react-three/fiber"
-import { OrbitControls } from "@react-three/drei"
-import { useRef } from "react"
-import { useFrame } from "@react-three/fiber"
-
-function CodeCube() {
-  const meshRef = useRef()
-
-  useFrame((state, delta) => {
-    if (meshRef.current) {
-      meshRef.current.rotation.x += delta * 0.2
-      meshRef.current.rotation.y += delta * 0.3
-    }
-  })
-
-  return (
-    <mesh ref={meshRef}>
-      <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial color="#00ff00" wireframe />
-    </mesh>
-  )
-}
+import { OrbitControls, Environment } from "@react-three/drei"
+import RoamingRobot from "./RoamingRobot"
 
 export default function ThreeScene() {
   return (
-    <Canvas>
+    <Canvas camera={{ position: [0, 5, 10], fov: 50 }}>
       <ambientLight intensity={0.5} />
       <pointLight position={[10, 10, 10]} />
-      <CodeCube />
+      <Suspense fallback={null}>
+        <RoamingRobot />
+        <Environment preset="city" />
+      </Suspense>
       <OrbitControls enableZoom={false} />
     </Canvas>
   )

@@ -2,16 +2,22 @@
   "canisters": {
     "krnlsec_backend": {
       "main": "src/krnlsec_backend/main.mo",
+      "type": "motoko",
+      "dependencies": [
+        "krnlsec_ai"
+      ]
+    },
+    "krnlsec_ai": {
+      "main": "src/krnlsec_ai/main.mo",
       "type": "motoko"
     },
-    "krnlsec_frontend": {
-      "dependencies": [
-        "krnlsec_backend"
-      ],
-      "source": [
-        "src/krnlsec_frontend/assets"
-      ],
-      "type": "assets"
+    "krnlsec_storage": {
+      "main": "src/krnlsec_storage/main.mo",
+      "type": "motoko"
+    },
+    "krnlsec_users": {
+      "main": "src/krnlsec_users/main.mo",
+      "type": "motoko"
     }
   },
   "defaults": {
