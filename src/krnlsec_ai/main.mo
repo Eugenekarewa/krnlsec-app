@@ -2,6 +2,7 @@ import Text "mo:base/Text";
 import Array "mo:base/Array";
 import Buffer "mo:base/Buffer";
 import HashMap "mo:base/HashMap";
+import Iter "mo:base/Iter";
 
 actor KrnlSecAI {
     public type Warning = {
@@ -9,35 +10,37 @@ actor KrnlSecAI {
         message : Text;
     };
 
-    // Known vulnerability patterns
-    let vulnerabilityPatterns = HashMap.HashMap<Text, Text>(10, Text.equal, Text.hash);
+    // Define vulnerability patterns
+    private stable var vulnerabilityEntries : [(Text, Text)] = [
+        ("transfer", "⚠️ Reentrancy vulnerability detected!"),
+        ("call.value", "⚠️ Unsafe external call detected! Consider using `.send()` or `.transfer()` instead."),
+        ("delegatecall", "⚠️ Delegatecall used! This can lead to arbitrary code execution."),
+        ("tx.origin", "⚠️ `tx.origin` used for authentication! Use `msg.sender` instead."),
+        ("unchecked", "⚠️ Unchecked arithmetic operations! Consider using SafeMath."),
+        ("assembly", "⚠️ Inline assembly detected! This may introduce low-level vulnerabilities."),
+        ("selfdestruct", "⚠️ Contract can be destroyed! This may lead to fund loss.")
+    ];
     
-    // Initializing known vulnerability patterns
-    vulnerabilityPatterns.put("transfer", "⚠️ Reentrancy vulnerability detected!");
-    vulnerabilityPatterns.put("call.value", "⚠️ Unsafe external call detected! Consider using `.send()` or `.transfer()` instead.");
-    vulnerabilityPatterns.put("delegatecall", "⚠️ Delegatecall used! This can lead to arbitrary code execution.");
-    vulnerabilityPatterns.put("tx.origin", "⚠️ `tx.origin` used for authentication! Use `msg.sender` instead.");
-    vulnerabilityPatterns.put("unchecked", "⚠️ Unchecked arithmetic operations! Consider using SafeMath.");
-    vulnerabilityPatterns.put("assembly", "⚠️ Inline assembly detected! This may introduce low-level vulnerabilities.");
-    vulnerabilityPatterns.put("selfdestruct", "⚠️ Contract can be destroyed! This may lead to fund loss.");
+    private var vulnerabilityPatterns : HashMap.HashMap<Text, Text> = HashMap.fromIter(
+        vulnerabilityEntries.vals(), 10, Text.equal, Text.hash
+    );
 
-    // Function to analyze contract for security issues
+    // Analyze contract for security vulnerabilities
     public func analyzeContract(code: Text) : async [Warning] {
-        let warningsBuffer: Buffer.Buffer<Warning> = Buffer.Buffer<Warning>(0);
+        let warningsBuffer = Buffer.Buffer<Warning>(0);
 
-        for ((pattern, warningMessage) in vulnerabilityPatterns.entries()) {
-            if (Text.contains(code, #text pattern)) {
-                warningsBuffer.add({ severity = "High"; message = warningMessage });
+        for ((key, message) in vulnerabilityPatterns.entries()) {
+            if (Text.contains(code, #text key)) {
+                warningsBuffer.add({ severity = "High"; message });
             };
         };
 
-        let result: [Warning] = Buffer.toArray<Warning>(warningsBuffer);
-        return result; // ✅ Explicit type declaration
+        return Buffer.toArray(warningsBuffer);
     };
 
-    // Function to analyze contract for gas optimization issues
+    // Gas optimization checker
     public func gasOptimizationChecker(code: Text) : async [Warning] {
-        let warningsBuffer: Buffer.Buffer<Warning> = Buffer.Buffer<Warning>(0);
+        let warningsBuffer = Buffer.Buffer<Warning>(0);
 
         if (Text.contains(code, #text "for ") or Text.contains(code, #text "while ")) {
             warningsBuffer.add({ severity = "Medium"; message = "⚠️ Loop detected! Unbounded loops may consume excessive gas." });
@@ -47,21 +50,33 @@ actor KrnlSecAI {
             warningsBuffer.add({ severity = "Low"; message = "⚠️ Excessive storage writes detected! Consider optimizing storage access." });
         };
 
-        let result: [Warning] = Buffer.toArray<Warning>(warningsBuffer);
-        return result; // ✅ Explicit type declaration
+        return Buffer.toArray(warningsBuffer);
     };
 
-    // Function to generate a structured security report
+    // Generate security report
     public func generateAnalysisReport(code: Text) : async Text {
-        let vulnerabilities: [Warning] = await analyzeContract(code);
-        let gasWarnings: [Warning] = await gasOptimizationChecker(code);
-        let combinedWarnings: [Warning] = Array.append<Warning>(vulnerabilities, gasWarnings); // ✅ Ensure type safety
+        let vulnerabilities = await analyzeContract(code);
+        let gasWarnings = await gasOptimizationChecker(code);
+        let combinedWarnings = Array.append(vulnerabilities, gasWarnings);
 
-        var report: Text = "📊 KrnlSecAI Security Report 📊\n";
+        if (combinedWarnings.size() == 0) {
+            return "✅ No critical issues detected!";
+        };
+
+        var report: Text = "📊 **KrnlSecAI Security Report** 📊\n";
         for (warning in combinedWarnings.vals()) {
             report := report # "\n- [" # warning.severity # "] " # warning.message;
         };
 
         return report;
+    };
+
+    // Ensure data persistence across upgrades
+    system func preupgrade() {
+        vulnerabilityEntries := Iter.toArray(vulnerabilityPatterns.entries());
+    };
+
+    system func postupgrade() {
+        vulnerabilityPatterns := HashMap.fromIter(vulnerabilityEntries.vals(), 10, Text.equal, Text.hash);
     };
 }
